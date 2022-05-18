@@ -8,12 +8,14 @@
 
 import UIKit
 import RichEditorView
+import SafariServices
 
 class ViewController: UIViewController {
     @IBOutlet var editorView: RichEditorView!
     @IBOutlet var htmlTextView: UITextView!
     var isTextColor = true
-
+    @IBOutlet weak var editButton: UIBarButtonItem!
+  
     lazy var toolbar: RichEditorToolbar = {
         let toolbar = RichEditorToolbar(frame: CGRect(x: 0, y: 0, width: self.view.bounds.width, height: 44))
 //        let options: [RichEditorDefaultOption] = [
@@ -32,6 +34,7 @@ class ViewController: UIViewController {
         
         editorView.delegate = self
         editorView.inputAccessoryView = toolbar
+        editorView.editingEnabled = false
         editorView.placeholder = "Edit here"
         let html = "<b>Jesus is God.</b> He saves by grace through faith alone. Soli Deo gloria! <a href='https://perfectGod.com'>perfectGod.com</a>"
         editorView.reloadHTML(with: html)
@@ -47,6 +50,21 @@ class ViewController: UIViewController {
         var options = toolbar.options
         options.append(item)
         toolbar.options = options
+    }
+  
+    @IBAction func changeEditState(_ sender: Any) {
+        editorView.editingEnabled.toggle()
+      
+        let title: String
+        if editorView.editingEnabled {
+            _ = editorView.becomeFirstResponder()
+            title = "Done"
+        } else {
+            _ = editorView.resignFirstResponder()
+            title = "Edit"
+        }
+      
+        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: title, style: .done, target: self, action: #selector(changeEditState(_:)))
     }
 
 }
@@ -69,6 +87,13 @@ extension ViewController: RichEditorDelegate {
     func richEditorDidLoad(_ editor: RichEditorView) { }
     
     func richEditor(_ editor: RichEditorView, shouldInteractWith url: URL) -> Bool { return true }
+  
+    func richEditor(_ editor: RichEditorView, interactWith url: URL) {
+        let configuration = SFSafariViewController.Configuration()
+        configuration.entersReaderIfAvailable = true
+        let safari = SFSafariViewController(url: url, configuration: configuration)
+        present(safari, animated: true)
+    }
 
     func richEditor(_ editor: RichEditorView, handleCustomAction content: String) { }
 }

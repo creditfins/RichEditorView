@@ -14,7 +14,7 @@ import WebKit
 private let DefaultInnerLineHeight: Int = 21
     
 /// RichEditorDelegate defines callbacks for the delegate of the RichEditorView
-@objc public protocol RichEditorDelegate: class {
+@objc public protocol RichEditorDelegate: AnyObject {
     /// Called when the inner height of the text being displayed changes
     /// Can be used to update the UI
     @objc optional func richEditor(_ editor: RichEditorView, heightDidChange height: Int)
@@ -35,6 +35,10 @@ private let DefaultInnerLineHeight: Int = 21
     /// Called when the internal WKWebView begins loading a URL that it does not know how to respond to
     /// For example, if there is an external link, and then the user taps it
     @objc optional func richEditor(_ editor: RichEditorView, shouldInteractWith url: URL) -> Bool
+  
+    /// Called when the internal WKWebView response to the external link and the `richEditor(_ editor: RichEditorView, shouldInteractWith url: URL)` should return true
+    /// You should open the external link in this function.
+    @objc optional func richEditor(_ editor: RichEditorView, interactWith url: URL)
     
     /// Called when custom actions are called by callbacks in the JS
     /// By default, this method is not used unless called by some custom JS that you add
@@ -347,7 +351,7 @@ private let DefaultInnerLineHeight: Int = 21
     }
     
     public func blockquote() {
-        runJS("RE.setBlockquote()");
+        runJS("RE.setBlockquote()")
     }
     
     public func alignLeft() {
@@ -457,19 +461,20 @@ private let DefaultInnerLineHeight: Int = 21
                     jsonCommands.forEach(self.performCommand)
                 }
             }
-            return decisionHandler(WKNavigationActionPolicy.cancel);
+            return decisionHandler(WKNavigationActionPolicy.cancel)
         }
         
         // User is tapping on a link, so we should react accordingly
         if navigationAction.navigationType == .linkActivated {
             if let url = navigationAction.request.url {
                 if delegate?.richEditor?(self, shouldInteractWith: url) ?? false {
-                    return decisionHandler(WKNavigationActionPolicy.allow);
+                    delegate?.richEditor?(self, interactWith: url)
+                    return decisionHandler(WKNavigationActionPolicy.cancel)
                 }
             }
         }
         
-        return decisionHandler(WKNavigationActionPolicy.allow);
+        return decisionHandler(WKNavigationActionPolicy.allow)
     }
     
     // MARK: UIGestureRecognizerDelegate
@@ -573,24 +578,19 @@ private let DefaultInnerLineHeight: Int = 21
                 isReady = true
             }
             updateHeight()
-        }
-        else if method.hasPrefix("input") {
+        } else if method.hasPrefix("input") {
             scrollCaretToVisible()
             runJS("RE.getHtml()") { content in
                 self.contentHTML = content
                 self.updateHeight()
             }
-        }
-        else if method.hasPrefix("updateHeight") {
+        } else if method.hasPrefix("updateHeight") {
             updateHeight()
-        }
-        else if method.hasPrefix("focus") {
+        } else if method.hasPrefix("focus") {
             delegate?.richEditorTookFocus?(self)
-        }
-        else if method.hasPrefix("blur") {
+        } else if method.hasPrefix("blur") {
             delegate?.richEditorLostFocus?(self)
-        }
-        else if method.hasPrefix("action/") {
+        } else if method.hasPrefix("action/") {
             runJS("RE.getHtml()") { content in
                 self.contentHTML = content
                 
