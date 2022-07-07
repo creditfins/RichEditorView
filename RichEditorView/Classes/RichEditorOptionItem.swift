@@ -9,11 +9,15 @@ import UIKit
 
 /// A RichEditorOption object is an object that can be displayed in a RichEditorToolbar.
 /// This protocol is proviced to allow for custom actions not provided in the RichEditorOptions enum.
-public protocol RichEditorOption {
+ public protocol RichEditorOption {
 
     /// The image to be displayed in the RichEditorToolbar.
     var image: UIImage? { get }
+    
+    /// The selected image to be displayed in the RichEditorToolbar.
+    var selectedImage: UIImage? { get }
 
+    var tag: Int {get}
     /// The title of the item.
     /// If `image` is nil, this will be used for display in the RichEditorToolbar.
     var title: String { get }
@@ -21,8 +25,7 @@ public protocol RichEditorOption {
     /// The action to be evoked when the action is tapped
     /// - parameter editor: The RichEditorToolbar that the RichEditorOption was being displayed in when tapped.
     ///                     Contains a reference to the `editor` RichEditorView to perform actions on.
-    /// - parameter sender: The object that sent the action. Usually a `UIView` from the toolbar item that represents the option.
-    func action(_ editor: RichEditorToolbar, sender: AnyObject)
+    func action(_ editor: RichEditorToolbar, optionItem: RichEditorDefaultOption?)
 }
 
 /// RichEditorOptionItem is a concrete implementation of RichEditorOption.
@@ -31,25 +34,30 @@ public struct RichEditorOptionItem: RichEditorOption {
 
     /// The image that should be shown when displayed in the RichEditorToolbar.
     public var image: UIImage?
+    
+    public var selectedImage: UIImage?
 
     /// If an `itemImage` is not specified, this is used in display
     public var title: String
+    
+    public var tag: Int
 
     /// The action to be performed when tapped
-    public var handler: ((RichEditorToolbar, AnyObject) -> Void)
+    public var handler: ((RichEditorToolbar, RichEditorDefaultOption?) -> Void)
 
-    public init(image: UIImage? = nil, title: String, action: @escaping ((RichEditorToolbar, AnyObject) -> Void)) {
+    public init(image: UIImage?, selectedImage: UIImage?, title: String, tag: Int,action: @escaping ((RichEditorToolbar, RichEditorDefaultOption?) -> Void)) {
+        
+        self.tag = tag
         self.image = image
+        self.selectedImage = selectedImage
         self.title = title
         self.handler = action
     }
     
-    public init(title: String, action: @escaping ((RichEditorToolbar, AnyObject) -> Void)) {
-        self.init(image: nil, title: title, action: action)
-    }
+    // MARK: RichEditorOption
     
-    public func action(_ toolbar: RichEditorToolbar, sender: AnyObject) {
-        handler(toolbar, sender)
+    public func action(_ toolbar: RichEditorToolbar, optionItem: RichEditorDefaultOption? = nil) {
+        handler(toolbar, optionItem) /// relating otion item to default one
     }
 }
 
@@ -79,7 +87,7 @@ public enum RichEditorDefaultOption: RichEditorOption {
     case link
     
     public static let all: [RichEditorDefaultOption] = [
-        //.clear,
+        .clear,
         .undo, .redo, .bold, .italic,
         .subscript, .superscript, .strike, .underline,
         .textColor, .textBackgroundColor,
@@ -93,7 +101,7 @@ public enum RichEditorDefaultOption: RichEditorOption {
     public var image: UIImage? {
         var name = ""
         switch self {
-        case .clear: name = "clear"
+        case .clear: name = "removeFormat"
         case .undo: name = "undo"
         case .redo: name = "redo"
         case .bold: name = "bold"
@@ -102,7 +110,7 @@ public enum RichEditorDefaultOption: RichEditorOption {
         case .superscript: name = "superscript"
         case .strike: name = "strikethrough"
         case .underline: name = "underline"
-        case .textColor: name = "text_color"
+        case .textColor: name = "textColor"
         case .textBackgroundColor: name = "bg_color"
         case .header(let h): name = "h\(h)"
         case .indent: name = "indent"
@@ -117,9 +125,90 @@ public enum RichEditorDefaultOption: RichEditorOption {
         }
         
         let bundle = Bundle(for: RichEditorToolbar.self)
-        return UIImage(named: name, in: bundle, compatibleWith: nil)?.withRenderingMode(.alwaysTemplate)
+        return UIImage(named: name, in: bundle, compatibleWith: nil)
+
     }
     
+    public var selectedImage: UIImage? {
+        var name: String = ""
+        switch self {
+        case .clear: name = "removeFormatSelected"
+        case .undo: name = "undo"
+        case .redo: name = "redo"
+        case .bold: name = "boldSelected"
+        case .italic: name = "ItalicSelected"
+        case .subscript: name = "subscript"
+        case .superscript: name = "superscript"
+        case .strike: name = "strikethrough"
+        case .underline: name = "underlineSelected"
+        case .textColor: name = "textColorSelected"
+        case .textBackgroundColor: name = "bg_color"
+        case .header(let h): name = "h\(h)"
+        case .indent: name = "indent"
+        case .outdent: name = "outdent"
+        case .orderedList: name = "ordered_list"
+        case .unorderedList: name = "unordered_list"
+        case .alignLeft: name = "justify_left"
+        case .alignCenter: name = "justify_center"
+        case .alignRight: name = "justify_right"
+        case .image: name = "insert_image"
+        case .link: name = "insert_link"
+        }
+        
+        let bundle = Bundle(for: RichEditorToolbar.self)
+        return UIImage(named: name, in: bundle, compatibleWith: nil)
+
+    }
+    
+    /*
+     case .clear: return "Clear"
+     case .undo: return "Undo"
+     case .redo: return "Redo"
+     case .bold: return "Bold"
+     case .italic: return "Italic"
+     case .subscript: return "Sub"
+     case .superscript: return "Super"
+     case .strike: return "Strike"
+     case .underline: return "Underline"
+     case .textColor: return "Color"
+     case .textBackgroundColor: return "BG Color"
+     case .header(let h): return "H\(h)"
+     case .indent: return "Indent"
+     case .outdent: return "Outdent"
+     case .orderedList: return "Ordered List"
+     case .unorderedList: return "Unordered List"
+     case .alignLeft: return "Left"
+     case .alignCenter: return "Center"
+     case .alignRight: return "Right"
+     case .image: return "Image"
+     case .link: return "Link"
+     */
+    public var tag: Int {
+        switch self {
+        case .clear: return 20
+        case .undo: return 21
+        case .redo: return 22
+        case .bold: return 23
+        case .italic: return 24
+        case .subscript: return 25
+        case .superscript: return 26
+        case .strike: return 27
+        case .underline: return 28
+        case .textColor: return 29
+        case .textBackgroundColor: return 30
+        case .header(_): return 31
+        case .indent: return 32
+        case .outdent: return 33
+        case .orderedList: return 34
+        case .unorderedList: return 35
+        case .alignLeft: return 36
+        case .alignCenter: return 37
+        case .alignRight: return 38
+        case .image: return 39
+        case .link: return 40
+        }
+    }
+
     public var title: String {
         switch self {
         case .clear: return NSLocalizedString("Clear", comment: "")
@@ -145,8 +234,8 @@ public enum RichEditorDefaultOption: RichEditorOption {
         case .link: return NSLocalizedString("Link", comment: "")
         }
     }
-    
-    public func action(_ toolbar: RichEditorToolbar, sender: AnyObject) {
+  
+    public func action(_ toolbar: RichEditorToolbar, optionItem: RichEditorDefaultOption?) {
         switch self {
         case .clear: toolbar.editor?.removeFormat()
         case .undo: toolbar.editor?.undo()
@@ -157,8 +246,8 @@ public enum RichEditorDefaultOption: RichEditorOption {
         case .superscript: toolbar.editor?.superscript()
         case .strike: toolbar.editor?.strikethrough()
         case .underline: toolbar.editor?.underline()
-        case .textColor: toolbar.delegate?.richEditorToolbarChangeTextColor?(toolbar, sender: sender)
-        case .textBackgroundColor: toolbar.delegate?.richEditorToolbarChangeBackgroundColor?(toolbar, sender: sender)
+        case .textColor: toolbar.alphaDelegate?.richEditorToolbarChangeTextColor(toolbar, optionItem: optionItem!)
+        case .textBackgroundColor: toolbar.delegate?.richEditorToolbarChangeBackgroundColor?(toolbar)
         case .header(let h): toolbar.editor?.header(h)
         case .indent: toolbar.editor?.indent()
         case .outdent: toolbar.editor?.outdent()
